@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "681100339545",
+    "project_id": "maqraah-aljezeri",
+    "storage_bucket": "maqraah-aljezeri.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:681100339545:android:3d6e82bd3bdda73aed8448",
+        "android_client_info": {
+          "package_name": "com.aistudio.maqraah.jazari"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjjXChgNA5_sE3Y-AmjL3Dm2fh91UZS4k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
