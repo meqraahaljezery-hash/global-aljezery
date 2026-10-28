@@ -1,0 +1,6 @@
+{
+  "name": "Al-Jazari Maqraah",
+  "description": "Imam Al-Jazari Quranic Maqraah for Recitation & Ijazah with Sanad - Telegram/WhatsApp hybrid chat, LiveKit live audio rooms, student queue, packages and minutes ledger in Arabic, Amharic, and English.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

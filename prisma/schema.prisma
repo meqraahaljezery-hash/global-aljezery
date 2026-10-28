@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  SUPERVISOR
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum SessionStatus {
+  SCHEDULED
+  IN_QUEUE
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LedgerType {
+  CREDIT_PURCHASE
+  CREDIT_BONUS
+  DEBIT_SESSION
+  REFUND
+}
+
+enum RoomStatus {
+  LIVE
+  IDLE
+  MAINTENANCE
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  phone         String?   @unique
+  passwordHash  String
+  name          String
+  role          Role      @default(STUDENT)
+  avatarUrl     String?
+  language      String    @default("ar") // "ar", "am", "en"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  profile       Profile?
+  student       Student?
+  teacher       Teacher?
+  sentMessages  Message[] @relation("SentMessages")
+  conversations ConversationParticipant[]
+  payments      PaymentRequest[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  stories       Story[]
+
+  @@index([role])
+}
+
+model Profile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio          String?
+  country      String?
+  city         String?
+  gender       Gender   @default(MALE)
+  qiraah       String?  // e.g., "Hafs an Asim", "Warsh an Nafi"
+  ijazahSanad  String?  // Sanad lineage details
+  telegramUser String?
+  whatsappNum  String?
+}
+
+model Student {
+  id              String             @id @default(uuid())
+  userId          String             @unique
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  minuteBalance   Int                @default(0)
+  targetSurah     String?
+  targetJuz       Int?
+  enrollments     Enrollment[]
+  sessions        Session[]
+  ledgerEntries   MinuteLedgerEntry[]
+}
+
+model Teacher {
+  id              String      @id @default(uuid())
+  userId          String      @unique
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sanadDetails    String?
+  maxQueueSize    Int         @default(15)
+  isOnline        Boolean     @default(false)
+  currentRoomId   String?
+  programs        Program[]
+  sessions        Session[]
+}
+
+model Program {
+  id           String               @id @default(uuid())
+  title        String
+  description  String
+  teacherId    String?
+  teacher      Teacher?             @relation(fields: [teacherId], references: [id])
+  translations ProgramTranslation[]
+  enrollments  Enrollment[]
+  createdAt    DateTime             @default(now())
+}
+
+model ProgramTranslation {
+  id          String   @id @default(uuid())
+  programId   String
+  program     Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  language    String   // "ar", "am", "en"
+  title       String
+  description String
+
+  @@unique([programId, language])
+}
+
+model Enrollment {
+  id        String   @id @default(uuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  programId String
+  program   Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model LiveRoom {
+  id          String     @id @default(uuid())
+  name        String
+  arabicName  String
+  amharicName String?
+  teacherId   String?
+  status      RoomStatus @default(IDLE)
+  liveKitRoom String     @unique
+  currentStudentsCount Int @default(0)
+  sessions    Session[]
+}
+
+model Session {
+  id              String        @id @default(uuid())
+  roomId          String?
+  room            LiveRoom?     @relation(fields: [roomId], references: [id])
+  studentId       String
+  student         Student       @relation(fields: [studentId], references: [id])
+  teacherId       String
+  teacher         Teacher       @relation(fields: [teacherId], references: [id])
+  status          SessionStatus @default(SCHEDULED)
+  durationMinutes Int           @default(0)
+  surahRecited    String?
+  ayahStart       Int?
+  ayahEnd         Int?
+  tajweedNotes    String?
+  rating          Int?          // 1-5 stars
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime      @default(now())
+}
+
+model Package {
+  id              String           @id @default(uuid())
+  name            String
+  minutes         Int
+  price           Float
+  currency        String           @default("USD")
+  description     String?
+  isActive        Boolean          @default(true)
+  paymentRequests PaymentRequest[]
+}
+
+model PaymentRequest {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packageId     String
+  package       Package       @relation(fields: [packageId], references: [id])
+  amount        Float
+  currency      String
+  senderName    String
+  transactionId String        @unique
+  senderPhone   String
+  paymentMethod String        // "Bank Al Rajhi", "Telebirr", "CBE", "PayPal", "Vodafone Cash"
+  receiptImage  String?
+  status        PaymentStatus @default(PENDING)
+  reviewNote    String?
+  reviewedBy    String?
+  createdAt     DateTime      @default(now())
+  reviewedAt    DateTime?
+}
+
+model MinuteLedgerEntry {
+  id          String     @id @default(uuid())
+  studentId   String
+  student     Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  amount      Int        // positive or negative
+  balanceAfter Int
+  type        LedgerType
+  referenceId String?
+  description String
+  createdAt   DateTime   @default(now())
+}
+
+model Conversation {
+  id           String                    @id @default(uuid())
+  isGroup      Boolean                   @default(false)
+  title        String?
+  avatarUrl    String?
+  createdAt    DateTime                  @default(now())
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String       @default("MEMBER") // ADMIN, MEMBER
+  unreadCount    Int          @default(0)
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  content        String
+  audioUrl       String?
+  audioDuration  Int?         // in seconds
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}
+
+model Story {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaUrl  String
+  caption   String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  resource  String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
