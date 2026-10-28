@@ -25,25 +25,20 @@ jobs:
         packages: 'platforms;android-36'
         accept-android-sdk-licenses: true
 
-    # 1. إنشاء جميع الملفات الناقصة التي يطلبها AI Studio
+    # 1. إنشاء جميع الملفات الناقصة
     - name: Create Missing Files (Env, Keystore, Firebase)
       run: |
-        # إنشاء ملفات البيئة
         touch .env
         touch .env.example
-        
-        # إنشاء ملفات التوقيع
         keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
         keytool -genkey -v -keystore my-upload-key.jks -storepass android -alias upload -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Release,O=Android,C=US"
-        
-        # إنشاء ملف Firebase وهمي
         mkdir -p app
         echo '{"project_info":{"project_number":"123456789","project_id":"dummy-project","storage_bucket":"dummy.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:123456789:android:123456789","android_client_info":{"package_name":"com.aistudio.aljazari.maqraah"}},"oauth_client":[],"api_key":[{"current_key":"dummy_key"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}]}' > app/google-services.json
 
-    # 2. تجهيز Gradle وإنشاء الـ Wrapper الناقص
+    # 2. تجهيز Gradle 9.3.1 (الإصدار المطلوب)
     - name: Setup Gradle Wrapper
       run: |
-        gradle wrapper --gradle-version 8.11.1
+        gradle wrapper --gradle-version 9.3.1
         chmod +x ./gradlew
 
     # 3. البناء الفعلي
